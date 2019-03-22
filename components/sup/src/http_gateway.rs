@@ -281,10 +281,8 @@ impl Server {
             // supervisor is in a long running non-run hook, that loop will not get to
             // check_for_signal in a reasonable amount of time and the supervisor will not
             // respond to ctrl+c. On Windows, we let the launcher catch ctrl+c and gracefully
-            // shut down services. ctrl+c should simply halt the supervisor. The IgnoreSignals
-            // feature is always enabled in the Habitat Windows Service which relies on ctrl+c
-            // signals to stop the supervisor.
-            if feat::is_enabled(feat::IgnoreSignals) {
+            // shut down services. ctrl+c should simply halt the supervisor.
+            if cfg!(windows) {
                 server = server.disable_signals();
             }
 
