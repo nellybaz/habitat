@@ -47,6 +47,7 @@ notify = "*"
 num_cpus = "*"
 prometheus = "*"
 prost = "*"
+prost-derive = "*"
 protobuf = { version = "1.5.1", features = ["bytes"] }
 rand = "*"
 regex = "*"
@@ -86,6 +87,9 @@ json = "*"
 
 [dev-dependencies.habitat_core]
 git = "https://github.com/habitat-sh/core.git"
+
+[build-dependencies]
+prost-build = "*"
 
 [features]
 default = []
