@@ -14,6 +14,7 @@ path = "../butterfly"
 
 [dependencies.habitat_core]
 git = "https://github.com/habitat-sh/core.git"
+branch = "cm/clarify-signal-behavior"
 
 [features]
 default = []

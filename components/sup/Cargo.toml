@@ -36,7 +36,7 @@ glob = "*"
 hab = { path = "../hab" }
 habitat_butterfly = { path = "../butterfly", default-features = false }
 habitat_common = { path = "../common" }
-habitat_core = { git = "https://github.com/habitat-sh/core.git" }
+habitat_core = { git = "https://github.com/habitat-sh/core.git", branch = "cm/clarify-signal-behavior" }
 habitat_api_client = { path = "../builder-api-client" }
 habitat-launcher-client = { path = "../launcher-client" }
 habitat-sup-protocol = { path = "../sup-protocol", default-features = false }
@@ -86,6 +86,7 @@ json = "*"
 
 [dev-dependencies.habitat_core]
 git = "https://github.com/habitat-sh/core.git"
+branch = "cm/clarify-signal-behavior"
 
 [features]
 default = []

@@ -47,6 +47,7 @@ features = [ "suggestions", "color", "unstable" ]
 
 [dependencies.habitat_core]
 git = "https://github.com/habitat-sh/core.git"
+branch = "cm/clarify-signal-behavior"
 
 [dependencies.habitat_common]
 path = "../common"
@@ -56,6 +57,7 @@ path = "../builder-api-client"
 
 [dependencies.habitat_http_client]
 git = "https://github.com/habitat-sh/core.git"
+branch = "cm/clarify-signal-behavior"
 
 [dependencies.uuid]
 version = "*"

@@ -44,6 +44,7 @@ valico = "*"
 
 [dependencies.habitat_core]
 git = "https://github.com/habitat-sh/core.git"
+branch = "cm/clarify-signal-behavior"
 
 [dependencies.habitat_api_client]
 path = "../builder-api-client"
