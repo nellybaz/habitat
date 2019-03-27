@@ -90,25 +90,34 @@ pub struct RumorTTL {
     pub last_refresh: DateTime<Utc>,
 }
 
-// It may not make sense to have a default for this, but I'm putting it in for now, to simplify
-// things
-impl Default for RumorTTL {
-    fn default() -> Self {
+impl RumorTTL {
+    pub fn departure() -> Self { Self::new(Departure::ttl()) }
+
+    pub fn election() -> Self { Self::new(Election::ttl()) }
+
+    pub fn service() -> Self { Self::new(Service::ttl()) }
+
+    pub fn service_config() -> Self { Self::new(ServiceConfig::ttl()) }
+
+    pub fn service_file() -> Self { Self::new(ServiceFile::ttl()) }
+
+    fn new(ttl: Duration) -> Self {
         let now = Utc::now();
 
-        RumorTTL { expiration:   now + Duration::hours(1),
+        RumorTTL { expiration:   now + ttl,
                    last_refresh: now, }
     }
-}
 
-impl RumorTTL {
     pub fn for_proto(&self) -> (String, String) {
         (self.expiration.to_rfc3339(), self.last_refresh.to_rfc3339())
     }
 
-    pub fn from_proto(expiration: Option<String>, last_refresh: Option<String>) -> Result<Self> {
+    pub fn from_proto(expiration: Option<String>,
+                      last_refresh: Option<String>,
+                      default_fn: fn() -> RumorTTL)
+                      -> Result<Self> {
         if expiration.is_none() || last_refresh.is_none() {
-            return Ok(RumorTTL::default());
+            return Ok(default_fn());
         }
 
         let exp = DateTime::parse_from_rfc3339(&expiration.unwrap())?;
@@ -118,12 +127,9 @@ impl RumorTTL {
                       last_refresh: lref.with_timezone(&Utc), })
     }
 
-    // JB TODO: this is sub-optimal and doesn't account for varying expiration times for different
-    // rumors. Fix this.
-    pub fn refresh(&mut self) {
+    pub fn refresh(&mut self, duration: Duration) {
         let now = Utc::now();
-
-        self.expiration = now + Duration::hours(1);
+        self.expiration = now + duration;
         self.last_refresh = now;
     }
 }
@@ -171,9 +177,10 @@ pub trait Rumor: Message<ProtoRumor> + Sized {
     fn id(&self) -> &str;
     fn merge(&mut self, other: Self) -> bool;
     fn uuid(&self) -> &str;
-    fn ttl(&self) -> &RumorTTL;
-    fn ttl_as_mut(&mut self) -> &mut RumorTTL;
-    fn refresh(&mut self) { self.ttl_as_mut().refresh(); }
+    fn rumor_ttl(&self) -> &RumorTTL;
+    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL;
+    fn ttl() -> Duration;
+    fn refresh(&mut self) { self.rumor_ttl_as_mut().refresh(Self::ttl()); }
 }
 
 impl<'a, T: Rumor> From<&'a T> for RumorKey {
@@ -491,7 +498,7 @@ impl<T> RumorStore<T> where T: Rumor
             .values()
             .flat_map(HashMap::values)
             .cloned()
-            .partition(|rumor| rumor.ttl().expiration < expiration_date)
+            .partition(|rumor| rumor.rumor_ttl().expiration < expiration_date)
     }
 
     pub fn expired_rumors(&self, expiration_date: DateTime<Utc>) -> Vec<T> {
@@ -512,7 +519,7 @@ impl<T> RumorStore<T> where T: Rumor
     pub fn refresh(&self, key: &str, id: &str) {
         let mut list = self.write_entries();
         if let Some(v) = list.get_mut(key).and_then(|r| r.get_mut(id)) {
-            v.ttl_as_mut().refresh();
+            v.refresh();
         }
     }
 

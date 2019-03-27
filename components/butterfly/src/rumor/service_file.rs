@@ -26,6 +26,7 @@ use crate::{error::{Error,
                     RumorPayload,
                     RumorTTL,
                     RumorType}};
+use chrono::Duration;
 use habitat_core::{crypto::{default_cache_key_path,
                             keys::box_key_pair::WrappedSealedBox,
                             BoxKeyPair},
@@ -84,7 +85,7 @@ impl ServiceFile {
                       filename: filename.into(),
                       body,
                       uuid: Uuid::new_v4().to_simple_ref().to_string(),
-                      ttl: RumorTTL::default() }
+                      ttl: RumorTTL::service_file() }
     }
 
     /// Encrypt the contents of the service file
@@ -120,7 +121,9 @@ impl FromProto<ProtoRumor> for ServiceFile {
             _ => panic!("from-bytes service-config"),
         };
 
-        let ttl = RumorTTL::from_proto(payload.expiration, payload.last_refresh)?;
+        let ttl = RumorTTL::from_proto(payload.expiration,
+                                       payload.last_refresh,
+                                       RumorTTL::service_file)?;
 
         Ok(ServiceFile { from_id: rumor.from_id.ok_or(Error::ProtocolMismatch("from-id"))?,
                          service_group:
@@ -172,9 +175,11 @@ impl Rumor for ServiceFile {
 
     fn uuid(&self) -> &str { &self.uuid }
 
-    fn ttl(&self) -> &RumorTTL { &self.ttl }
+    fn rumor_ttl(&self) -> &RumorTTL { &self.ttl }
 
-    fn ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+
+    fn ttl() -> Duration { Duration::hours(1) }
 }
 
 #[cfg(test)]

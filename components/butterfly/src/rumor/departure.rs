@@ -28,6 +28,7 @@ use crate::{error::{Error,
                     RumorPayload,
                     RumorTTL,
                     RumorType}};
+use chrono::Duration;
 use std::cmp::Ordering;
 use uuid::Uuid;
 
@@ -42,7 +43,7 @@ impl Departure {
     pub fn new(member_id: &str) -> Self {
         Departure { member_id: member_id.to_string(),
                     uuid:      Uuid::new_v4().to_simple_ref().to_string(),
-                    ttl:       RumorTTL::default(), }
+                    ttl:       RumorTTL::departure(), }
     }
 }
 
@@ -55,7 +56,9 @@ impl FromProto<ProtoRumor> for Departure {
             _ => panic!("from-bytes departure"),
         };
 
-        let ttl = RumorTTL::from_proto(payload.expiration, payload.last_refresh)?;
+        let ttl = RumorTTL::from_proto(payload.expiration,
+                                       payload.last_refresh,
+                                       RumorTTL::departure)?;
 
         Ok(Departure { member_id: payload.member_id
                                          .ok_or(Error::ProtocolMismatch("member-id"))?,
@@ -86,9 +89,11 @@ impl Rumor for Departure {
 
     fn uuid(&self) -> &str { &self.uuid }
 
-    fn ttl(&self) -> &RumorTTL { &self.ttl }
+    fn rumor_ttl(&self) -> &RumorTTL { &self.ttl }
 
-    fn ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+
+    fn ttl() -> Duration { Duration::hours(1) }
 }
 
 impl PartialOrd for Departure {

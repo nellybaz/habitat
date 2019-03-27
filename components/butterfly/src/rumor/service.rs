@@ -25,6 +25,7 @@ use crate::{error::{Error,
                     RumorPayload,
                     RumorTTL,
                     RumorType}};
+use chrono::Duration;
 use habitat_core::{package::Identifiable,
                    service::ServiceGroup};
 use serde::{ser::SerializeStruct,
@@ -120,7 +121,7 @@ impl Service {
                           })
                           .unwrap_or_default(),
                   uuid: Uuid::new_v4().to_simple_ref().to_string(),
-                  ttl: RumorTTL::default() }
+                  ttl: RumorTTL::service() }
     }
 }
 
@@ -133,7 +134,8 @@ impl FromProto<newscast::Rumor> for Service {
             _ => panic!("from-bytes service"),
         };
 
-        let ttl = RumorTTL::from_proto(payload.expiration, payload.last_refresh)?;
+        let ttl =
+            RumorTTL::from_proto(payload.expiration, payload.last_refresh, RumorTTL::service)?;
 
         Ok(Service { member_id: payload.member_id
                                        .ok_or(Error::ProtocolMismatch("member-id"))?,
@@ -190,9 +192,11 @@ impl Rumor for Service {
 
     fn uuid(&self) -> &str { &self.uuid }
 
-    fn ttl(&self) -> &RumorTTL { &self.ttl }
+    fn rumor_ttl(&self) -> &RumorTTL { &self.ttl }
 
-    fn ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+
+    fn ttl() -> Duration { Duration::hours(1) }
 }
 
 #[derive(Debug, Clone, Serialize)]
