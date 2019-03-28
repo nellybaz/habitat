@@ -23,8 +23,8 @@ use crate::{error::{Error,
                                   Rumor as ProtoRumor},
                        FromProto},
             rumor::{Rumor,
+                    RumorLifespan,
                     RumorPayload,
-                    RumorTTL,
                     RumorType}};
 use chrono::Duration;
 use habitat_core::{crypto::{default_cache_key_path,
@@ -46,7 +46,7 @@ pub struct ServiceConfig {
     pub encrypted:     bool,
     pub config:        Vec<u8>, // TODO: make this a String
     pub uuid:          String,
-    pub ttl:           RumorTTL,
+    pub ttl:           RumorLifespan,
 }
 
 impl PartialOrd for ServiceConfig {
@@ -79,7 +79,7 @@ impl ServiceConfig {
                         encrypted: false,
                         config,
                         uuid: Uuid::new_v4().to_simple_ref().to_string(),
-                        ttl: RumorTTL::service_config() }
+                        ttl: RumorLifespan::service_config() }
     }
 
     pub fn encrypt(&mut self, user_pair: &BoxKeyPair, service_pair: &BoxKeyPair) -> Result<()> {
@@ -126,9 +126,9 @@ impl FromProto<ProtoRumor> for ServiceConfig {
             _ => panic!("from-bytes service-config"),
         };
 
-        let ttl = RumorTTL::from_proto(payload.expiration,
-                                       payload.last_refresh,
-                                       RumorTTL::service_config)?;
+        let ttl = RumorLifespan::from_proto(payload.expiration,
+                                            payload.last_refresh,
+                                            RumorLifespan::service_config)?;
 
         Ok(ServiceConfig { from_id: rumor.from_id.ok_or(Error::ProtocolMismatch("from-id"))?,
                            service_group: payload.service_group
@@ -178,9 +178,9 @@ impl Rumor for ServiceConfig {
 
     fn uuid(&self) -> &str { &self.uuid }
 
-    fn rumor_ttl(&self) -> &RumorTTL { &self.ttl }
+    fn lifespan(&self) -> &RumorLifespan { &self.ttl }
 
-    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+    fn lifespan_as_mut(&mut self) -> &mut RumorLifespan { &mut self.ttl }
 
     fn ttl() -> Duration { Duration::hours(1) }
 }

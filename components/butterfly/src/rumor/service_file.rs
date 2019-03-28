@@ -23,8 +23,8 @@ use crate::{error::{Error,
                                   Rumor as ProtoRumor},
                        FromProto},
             rumor::{Rumor,
+                    RumorLifespan,
                     RumorPayload,
-                    RumorTTL,
                     RumorType}};
 use chrono::Duration;
 use habitat_core::{crypto::{default_cache_key_path,
@@ -45,7 +45,7 @@ pub struct ServiceFile {
     pub filename:      String,
     pub body:          Vec<u8>,
     pub uuid:          String,
-    pub ttl:           RumorTTL,
+    pub ttl:           RumorLifespan,
 }
 
 impl PartialOrd for ServiceFile {
@@ -85,7 +85,7 @@ impl ServiceFile {
                       filename: filename.into(),
                       body,
                       uuid: Uuid::new_v4().to_simple_ref().to_string(),
-                      ttl: RumorTTL::service_file() }
+                      ttl: RumorLifespan::service_file() }
     }
 
     /// Encrypt the contents of the service file
@@ -121,9 +121,9 @@ impl FromProto<ProtoRumor> for ServiceFile {
             _ => panic!("from-bytes service-config"),
         };
 
-        let ttl = RumorTTL::from_proto(payload.expiration,
-                                       payload.last_refresh,
-                                       RumorTTL::service_file)?;
+        let ttl = RumorLifespan::from_proto(payload.expiration,
+                                            payload.last_refresh,
+                                            RumorLifespan::service_file)?;
 
         Ok(ServiceFile { from_id: rumor.from_id.ok_or(Error::ProtocolMismatch("from-id"))?,
                          service_group:
@@ -175,9 +175,9 @@ impl Rumor for ServiceFile {
 
     fn uuid(&self) -> &str { &self.uuid }
 
-    fn rumor_ttl(&self) -> &RumorTTL { &self.ttl }
+    fn lifespan(&self) -> &RumorLifespan { &self.ttl }
 
-    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+    fn lifespan_as_mut(&mut self) -> &mut RumorLifespan { &mut self.ttl }
 
     fn ttl() -> Duration { Duration::hours(1) }
 }

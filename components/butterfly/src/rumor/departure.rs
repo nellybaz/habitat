@@ -25,8 +25,8 @@ use crate::{error::{Error,
                                   Rumor as ProtoRumor},
                        FromProto},
             rumor::{Rumor,
+                    RumorLifespan,
                     RumorPayload,
-                    RumorTTL,
                     RumorType}};
 use chrono::Duration;
 use std::cmp::Ordering;
@@ -36,14 +36,14 @@ use uuid::Uuid;
 pub struct Departure {
     pub member_id: String,
     pub uuid:      String,
-    pub ttl:       RumorTTL,
+    pub ttl:       RumorLifespan,
 }
 
 impl Departure {
     pub fn new(member_id: &str) -> Self {
         Departure { member_id: member_id.to_string(),
                     uuid:      Uuid::new_v4().to_simple_ref().to_string(),
-                    ttl:       RumorTTL::departure(), }
+                    ttl:       RumorLifespan::departure(), }
     }
 }
 
@@ -56,9 +56,9 @@ impl FromProto<ProtoRumor> for Departure {
             _ => panic!("from-bytes departure"),
         };
 
-        let ttl = RumorTTL::from_proto(payload.expiration,
-                                       payload.last_refresh,
-                                       RumorTTL::departure)?;
+        let ttl = RumorLifespan::from_proto(payload.expiration,
+                                            payload.last_refresh,
+                                            RumorLifespan::departure)?;
 
         Ok(Departure { member_id: payload.member_id
                                          .ok_or(Error::ProtocolMismatch("member-id"))?,
@@ -89,9 +89,9 @@ impl Rumor for Departure {
 
     fn uuid(&self) -> &str { &self.uuid }
 
-    fn rumor_ttl(&self) -> &RumorTTL { &self.ttl }
+    fn lifespan(&self) -> &RumorLifespan { &self.ttl }
 
-    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+    fn lifespan_as_mut(&mut self) -> &mut RumorLifespan { &mut self.ttl }
 
     fn ttl() -> Duration { Duration::hours(1) }
 }

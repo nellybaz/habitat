@@ -22,8 +22,8 @@ use crate::{error::{Error,
                        newscast,
                        FromProto},
             rumor::{Rumor,
+                    RumorLifespan,
                     RumorPayload,
-                    RumorTTL,
                     RumorType}};
 use chrono::Duration;
 use habitat_core::{package::Identifiable,
@@ -48,7 +48,7 @@ pub struct Service {
     pub cfg:           Vec<u8>,
     pub sys:           SysInfo,
     pub uuid:          String,
-    pub ttl:           RumorTTL,
+    pub ttl:           RumorLifespan,
 }
 
 // Ensures that `cfg` is rendered as a map, and not an array of bytes
@@ -121,7 +121,7 @@ impl Service {
                           })
                           .unwrap_or_default(),
                   uuid: Uuid::new_v4().to_simple_ref().to_string(),
-                  ttl: RumorTTL::service() }
+                  ttl: RumorLifespan::service() }
     }
 }
 
@@ -134,8 +134,9 @@ impl FromProto<newscast::Rumor> for Service {
             _ => panic!("from-bytes service"),
         };
 
-        let ttl =
-            RumorTTL::from_proto(payload.expiration, payload.last_refresh, RumorTTL::service)?;
+        let ttl = RumorLifespan::from_proto(payload.expiration,
+                                            payload.last_refresh,
+                                            RumorLifespan::service)?;
 
         Ok(Service { member_id: payload.member_id
                                        .ok_or(Error::ProtocolMismatch("member-id"))?,
@@ -192,9 +193,9 @@ impl Rumor for Service {
 
     fn uuid(&self) -> &str { &self.uuid }
 
-    fn rumor_ttl(&self) -> &RumorTTL { &self.ttl }
+    fn lifespan(&self) -> &RumorLifespan { &self.ttl }
 
-    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+    fn lifespan_as_mut(&mut self) -> &mut RumorLifespan { &mut self.ttl }
 
     fn ttl() -> Duration { Duration::hours(1) }
 }

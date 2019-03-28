@@ -85,12 +85,12 @@ impl From<RumorKind> for RumorPayload {
 // Originally I was going to have expiration be time_to_live, as a Duration, but it turns out
 // Durations aren't easily parseable.
 #[derive(Debug, Clone)]
-pub struct RumorTTL {
+pub struct RumorLifespan {
     pub expiration:   DateTime<Utc>,
     pub last_refresh: DateTime<Utc>,
 }
 
-impl RumorTTL {
+impl RumorLifespan {
     pub fn departure() -> Self { Self::new(Departure::ttl()) }
 
     pub fn election() -> Self { Self::new(Election::ttl()) }
@@ -104,8 +104,8 @@ impl RumorTTL {
     fn new(ttl: Duration) -> Self {
         let now = Utc::now();
 
-        RumorTTL { expiration:   now + ttl,
-                   last_refresh: now, }
+        RumorLifespan { expiration:   now + ttl,
+                        last_refresh: now, }
     }
 
     pub fn for_proto(&self) -> (String, String) {
@@ -114,7 +114,7 @@ impl RumorTTL {
 
     pub fn from_proto(expiration: Option<String>,
                       last_refresh: Option<String>,
-                      default_fn: fn() -> RumorTTL)
+                      default_fn: fn() -> RumorLifespan)
                       -> Result<Self> {
         if expiration.is_none() || last_refresh.is_none() {
             return Ok(default_fn());
@@ -123,8 +123,8 @@ impl RumorTTL {
         let exp = DateTime::parse_from_rfc3339(&expiration.unwrap())?;
         let lref = DateTime::parse_from_rfc3339(&last_refresh.unwrap())?;
 
-        Ok(RumorTTL { expiration:   exp.with_timezone(&Utc),
-                      last_refresh: lref.with_timezone(&Utc), })
+        Ok(RumorLifespan { expiration:   exp.with_timezone(&Utc),
+                           last_refresh: lref.with_timezone(&Utc), })
     }
 
     pub fn refresh(&mut self, duration: Duration) {
@@ -134,11 +134,11 @@ impl RumorTTL {
     }
 }
 
-impl Serialize for RumorTTL {
+impl Serialize for RumorLifespan {
     fn serialize<S>(&self, serializer: S) -> result::Result<S::Ok, S::Error>
         where S: Serializer
     {
-        let mut strukt = serializer.serialize_struct("rumor_ttl", 2)?;
+        let mut strukt = serializer.serialize_struct("rumor_lifespan", 2)?;
         strukt.serialize_field("expiration", &self.expiration.to_rfc3339())?;
         strukt.serialize_field("last_refresh", &self.last_refresh.to_rfc3339())?;
         strukt.end()
@@ -177,10 +177,10 @@ pub trait Rumor: Message<ProtoRumor> + Sized {
     fn id(&self) -> &str;
     fn merge(&mut self, other: Self) -> bool;
     fn uuid(&self) -> &str;
-    fn rumor_ttl(&self) -> &RumorTTL;
-    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL;
+    fn lifespan(&self) -> &RumorLifespan;
+    fn lifespan_as_mut(&mut self) -> &mut RumorLifespan;
     fn ttl() -> Duration;
-    fn refresh(&mut self) { self.rumor_ttl_as_mut().refresh(Self::ttl()); }
+    fn refresh(&mut self) { self.lifespan_as_mut().refresh(Self::ttl()); }
 }
 
 impl<'a, T: Rumor> From<&'a T> for RumorKey {
@@ -498,7 +498,7 @@ impl<T> RumorStore<T> where T: Rumor
             .values()
             .flat_map(HashMap::values)
             .cloned()
-            .partition(|rumor| rumor.rumor_ttl().expiration < expiration_date)
+            .partition(|rumor| rumor.lifespan().expiration < expiration_date)
     }
 
     pub fn expired_rumors(&self, expiration_date: DateTime<Utc>) -> Vec<T> {

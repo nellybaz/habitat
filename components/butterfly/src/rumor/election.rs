@@ -31,8 +31,8 @@ use crate::{error::{Error,
                                   Rumor as ProtoRumor},
                        FromProto},
             rumor::{Rumor,
+                    RumorLifespan,
                     RumorPayload,
-                    RumorTTL,
                     RumorType}};
 use chrono::Duration;
 use std::ops::{Deref,
@@ -58,7 +58,7 @@ pub struct Election {
     pub status:        ElectionStatus,
     pub votes:         Vec<String>,
     pub uuid:          String,
-    pub ttl:           RumorTTL,
+    pub ttl:           RumorLifespan,
 }
 
 impl Election {
@@ -84,7 +84,7 @@ impl Election {
                    },
                    votes: vec![from_id],
                    uuid: Uuid::new_v4().to_simple_ref().to_string(),
-                   ttl: RumorTTL::election() }
+                   ttl: RumorLifespan::election() }
     }
 
     /// Insert a vote for the election.
@@ -140,8 +140,9 @@ impl FromProto<ProtoRumor> for Election {
             _ => panic!("from-bytes election"),
         };
         let from_id = rumor.from_id.ok_or(Error::ProtocolMismatch("from-id"))?;
-        let ttl =
-            RumorTTL::from_proto(payload.expiration, payload.last_refresh, RumorTTL::election)?;
+        let ttl = RumorLifespan::from_proto(payload.expiration,
+                                            payload.last_refresh,
+                                            RumorLifespan::election)?;
         Ok(Election { member_id: from_id.clone(),
                       service_group: payload.service_group
                                             .ok_or(Error::ProtocolMismatch("service-group"))?,
@@ -223,9 +224,9 @@ impl Rumor for Election {
 
     fn uuid(&self) -> &str { &self.uuid }
 
-    fn rumor_ttl(&self) -> &RumorTTL { &self.ttl }
+    fn lifespan(&self) -> &RumorLifespan { &self.ttl }
 
-    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.ttl }
+    fn lifespan_as_mut(&mut self) -> &mut RumorLifespan { &mut self.ttl }
 
     fn ttl() -> Duration { Duration::hours(1) }
 }
@@ -292,9 +293,9 @@ impl Rumor for ElectionUpdate {
 
     fn uuid(&self) -> &str { &self.0.uuid }
 
-    fn rumor_ttl(&self) -> &RumorTTL { &self.0.ttl }
+    fn lifespan(&self) -> &RumorLifespan { &self.0.ttl }
 
-    fn rumor_ttl_as_mut(&mut self) -> &mut RumorTTL { &mut self.0.ttl }
+    fn lifespan_as_mut(&mut self) -> &mut RumorLifespan { &mut self.0.ttl }
 
     fn ttl() -> Duration { Duration::hours(1) }
 }
